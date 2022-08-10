@@ -1,0 +1,16 @@
+username: hadoop
+master_host: node-master
+slave_nodes:
+  - node1
+  - node2
+ssh_key_path: /home/wantguns/.ssh/id_ed25519
+
+injections:
+  fill_ram:
+    desc: "Fill RAM completely"
+    dataset_size: small
+    workload: micro/wordcount
+    waittime: 10
+    how: |
+      timeout -k 95 90 cat /dev/random > /dev/shm/fillitup
+
