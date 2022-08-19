@@ -59,8 +59,10 @@ def perform_injection(injection: Injection):
             user=Config.USERNAME,
             connect_kwargs={"key_filename": Config.SSH_KEY_PATH}
         ) as c:
-        for command in injection.how:
-            c.run(command, warn=True)
+
+        with c.prefix("source ~/.profile"):
+            for command in injection.how:
+                c.run(command, warn=True)
 
 
 def parallely_execute(tasks):
