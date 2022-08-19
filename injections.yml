@@ -8,9 +8,21 @@ ssh_key_path: /home/wantguns/.ssh/id_ed25519
 injections:
   fill_ram:
     desc: "Fill RAM completely"
-    dataset_size: small
+    dataset_size: tiny
     workload: micro/wordcount
-    waittime: 10
-    how: |
-      timeout -k 95 90 cat /dev/random > /dev/shm/fillitup
+    how:
+      - host: node-master
+        waittime: 10
+        run: |
+          timeout -k 150 130 cat /dev/zero > /dev/shm/fillitup
+
+      - host: node1
+        waittime: 10
+        run: |
+          touch /tmp/trial_node1
+
+      - host: node2
+        waittime: 10
+        run: |
+          touch /tmp/trial_node2
 

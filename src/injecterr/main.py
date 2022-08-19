@@ -8,6 +8,7 @@ from injecterr.injections import Injection
 from injecterr.config import Config
 from injecterr.pre import prerun
 from injecterr.post import postrun
+from injecterr.how import How
 
 def parse_injections(service_file):
     """Parses the injections.yaml file and returns a list of injections"""
@@ -29,8 +30,7 @@ def parse_injections(service_file):
                     desc=idata["desc"], 
                     workload=idata["workload"], 
                     dataset_size=idata["dataset_size"], 
-                    waittime=idata["waittime"], 
-                    how=idata["how"].split('\n')
+                    how=[How(h["host"], h["waittime"], h["run"]) for h in idata["how"]]
                 )
             )
 
@@ -49,26 +49,26 @@ def start_workload(injection: Injection):
                 c.run(f"./bin/workloads/{injection.workload}/hadoop/run.sh", warn=True)
 
 
-def perform_injection(injection: Injection):
+def perform_injection(how: How):
     """Performs injections"""
 
-    time.sleep(injection.waittime)
+    time.sleep(how.waittime)
 
     with Connection(
-            Config.MASTER_HOST,
+            how.host,
             user=Config.USERNAME,
             connect_kwargs={"key_filename": Config.SSH_KEY_PATH}
         ) as c:
 
         with c.prefix("source ~/.profile"):
-            for command in injection.how:
+            for command in how.run:
                 c.run(command, warn=True)
 
 
 def parallely_execute(tasks):
-    """Parallely executes functions passed in the dict"""
+    """Parallely executes functions passed in the list"""
 
-    running_tasks = [Process(target=func, args=(args,)) for func, args in tasks.items()]
+    running_tasks = [Process(target=t[0], args=(t[1],)) for t in tasks]
     for running_task in running_tasks:
         running_task.start()
     for running_task in running_tasks:
@@ -81,11 +81,14 @@ def main():
 
     # perform injections
     for injection in injections:
+
+        # Populate parallel tasks:
+        tasks = [[ start_workload, injection ]]
+        for h in injection.how:
+            tasks.append([ perform_injection, h ])
+
         prerun(injection)
-        parallely_execute({ 
-          start_workload: injection, 
-          perform_injection: injection
-        })
+        parallely_execute(tasks)
         postrun(injection)
 
 
