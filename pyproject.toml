@@ -15,4 +15,5 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 injecterr = 'injecterr.main:main'
+postrun = 'injecterr.post:standalone'
 
